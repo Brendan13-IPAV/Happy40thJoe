@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scream Quiz Game</title>
+    <style>
+        :root {
+            --dark-bg: #0a0a0a;
+            --blood-red: #b30000;
+            --pale-white: #f8f8f8;
+            --ghost-gray: #333333;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background-color: var(--dark-bg);
+            color: var(--pale-white);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: var(--blood-red);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: 100%;
+        }
+        
+        .game-screen, .result-screen, .win-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: 100%;
+        }
+        
+        button {
+            background-color: var(--blood-red);
+            color: var(--pale-white);
+            border: none;
+            padding: 15px 30px;
+            margin: 10px 0;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 300px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #8a0000;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 300px;
+            margin: 20px auto;
+        }
+        
+        .question-count {
+            font-size: 1rem;
+            color: var(--ghost-gray);
+            margin-bottom: 10px;
+        }
+        
+        .message {
+            font-size: 1.5rem;
+            margin: 20px 0;
+            color: var(--blood-red);
+        }
+        
+        .instructions {
+            margin: 20px 0;
+            text-align: left;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        
+        .instructions ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .instructions li:before {
+            content: "•";
+            color: var(--blood-red);
+            font-size: 1.5em;
+            position: absolute;
+            left: -20px;
+            top: -5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Welcome Screen -->
+        <div class="welcome-screen" id="welcomeScreen">
+            <h1>Do You Like Scary Games?</h1>
+            <p>Hello there, potential victim. I've been watching you, and I think it's time we played a little game of wits. The rules are simple, but your life depends on them.</p>
+            
+            <div class="instructions">
+                <p>How to play:</p>
+                <ul>
+                    <li>Answer my questions correctly to survive</li>
+                    <li>Get all questions right to escape</li>
+                    <li>Get any wrong, and I'll add more questions</li>
+                    <li>The only way out is to answer ALL questions correctly in one round</li>
+                </ul>
+            </div>
+            
+            <p>Do you think you know enough to survive? Let's find out...</p>
+            <button id="startButton">Start Game</button>
+        </div>
+        
+        <!-- Game Screen -->
+        <div class="game-screen" id="gameScreen">
+            <div class="question-count" id="questionCount">Question 1/3</div>
+            <h1 id="question">Question text goes here</h1>
+            <div class="options" id="options"></div>
+        </div>
+        
+        <!-- Result Screen -->
+        <div class="result-screen" id="resultScreen">
+            <h1 id="resultTitle">Not Good Enough!</h1>
+            <p id="resultMessage">You got X/Y correct — which isn't good enough!</p>
+            <p>Let's see if you can do better this time...</p>
+            <button id="continueButton">Continue</button>
+        </div>
+        
+        <!-- Win Screen -->
+        <div class="win-screen" id="winScreen">
+            <h1>You've Escaped... For Now</h1>
+            <p>Well, well... I'm impressed. You've proven yourself smarter than most victims.</p>
+            <p>Here's your reward, as promised:</p>
+            <div class="message" id="secretCode">THE SECRET CODE IS: GHOSTFACE1996</div>
+            <p>Remember this code. You'll need it for what comes next...</p>
+            <button id="playAgainButton">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            currentQuestionIndex: 0,
+            activeQuestions: [],
+            wrongQuestions: [],
+            answeredCorrectly: [],
+            currentRound: 1
+        };
+
+        // Audio elements
+        const wrongSound = new Audio('https://freesound.org/data/previews/415/415209_5121236-lq.mp3'); // Eerie sound
+        const correctSound = new Audio('https://freesound.org/data/previews/320/320181_5260872-lq.mp3'); // Correct sound
+        const winSound = new Audio('https://freesound.org/data/previews/270/270404_5123851-lq.mp3'); // Win sound
+
+        // Initial 3 questions the player will always get first
+        const initialQuestions = [
+            {
+                question: "What is the name of the killer in the Scream movies?",
+                options: ["Jason Voorhees", "Ghostface", "Michael Myers", "Freddy Krueger"],
+                answer: "Ghostface"
+            },
+            {
+                question: "What is the famous line often said by Ghostface on the phone?",
+                options: [
+                    "Do you like scary movies?", 
+                    "I know what you did last summer", 
+                    "Seven days to live", 
+                    "Welcome to your nightmare"
+                ],
+                answer: "Do you like scary movies?"
+            },
+            {
+                question: "What town is the original Scream movie set in?",
+                options: ["Haddonfield", "Crystal Lake", "Woodsboro", "Elm Street"],
+                answer: "Woodsboro"
+            }
+        ];
+
+        // Bank of additional questions to pull from
+        const questionBank = [
+            {
+                question: "Who directed the original Scream movie?",
+                options: ["John Carpenter", "Wes Craven", "James Wan", "Sam Raimi"],
+                answer: "Wes Craven"
+            },
+            {
+                question: "What year was the first Scream movie released?",
+                options: ["1994", "1996", "1998", "2000"],
+                answer: "1996"
+            },
+            {
+                question: "What college did Sidney Prescott attend in Scream 2?",
+                options: ["Windsor College", "Woodsboro University", "Elm Street College", "Haddonfield University"],
+                answer: "Windsor College"
+            },
+            {
+                question: "What is the name of the fictional movie within the Scream universe?",
+                options: ["Stab", "Slash", "Scream", "Scare"],
+                answer: "Stab"
+            },
+            {
+                question: "What is Sidney Prescott's best friend's name in the original movie?",
+                options: ["Casey Becker", "Gale Weathers", "Tatum Riley", "Randy Meeks"],
+                answer: "Tatum Riley"
+            },
+            {
+                question: "What weapon does Ghostface primarily use?",
+                options: ["Chainsaw", "Machete", "Hunting Knife", "Axe"],
+                answer: "Hunting Knife"
+            },
+            {
+                question: "Which character is a reporter in the Scream franchise?",
+                options: ["Dewey Riley", "Gale Weathers", "Randy Meeks", "Cotton Weary"],
+                answer: "Gale Weathers"
+            },
+            {
+                question: "What horror movie rules does Randy explain at the party?",
+                options: [
+                    "How to kill the villain", 
+                    "How to survive a horror movie", 
+                    "How to identify the killer", 
+                    "How to escape the house"
+                ],
+                answer: "How to survive a horror movie"
+            },
+            {
+                question: "What does the killer often ask victims to do before attacking?",
+                options: [
+                    "Run away", 
+                    "Call for help", 
+                    "Play a game", 
+                    "Answer horror trivia"
+                ],
+                answer: "Play a game"
+            },
+            {
+                question: "What is the name of Sidney's boyfriend in the first film?",
+                options: ["Billy Loomis", "Steve Orth", "Randy Meeks", "Stu Macher"],
+                answer: "Billy Loomis"
+            },
+            {
+                question: "Which character is the sheriff's deputy in the original film?",
+                options: ["Dewey Riley", "Kenny Brown", "Cotton Weary", "Neil Prescott"],
+                answer: "Dewey Riley"
+            },
+            {
+                question: "What mask does the killer wear in Scream?",
+                options: [
+                    "Hockey mask", 
+                    "White ghost mask", 
+                    "Burlap sack", 
+                    "Clown mask"
+                ],
+                answer: "White ghost mask"
+            },
+            {
+                question: "What was the original title for the Scream script?",
+                options: ["Scary Movie", "The Mask", "Prank Call", "Ghostface"],
+                answer: "Scary Movie"
+            },
+            {
+                question: "Who survives the opening scene of Scream?",
+                options: ["Casey Becker", "Steve Orth", "Tatum Riley", "No one survives"],
+                answer: "No one survives"
+            },
+            {
+                question: "What horror franchise does Randy reference when explaining horror movie rules?",
+                options: ["Halloween", "Friday the 13th", "A Nightmare on Elm Street", "All of the above"],
+                answer: "All of the above"
+            },
+            {
+                question: "What is the killer's phone line after asking 'Do you like scary movies?'",
+                options: [
+                    "You're going to die tonight", 
+                    "What's your favorite scary movie?", 
+                    "Do you want to play a game?", 
+                    "I can see you right now"
+                ],
+                answer: "What's your favorite scary movie?"
+            },
+            {
+                question: "Who plays Sidney Prescott in the Scream franchise?",
+                options: ["Jennifer Love Hewitt", "Sarah Michelle Gellar", "Neve Campbell", "Rose McGowan"],
+                answer: "Neve Campbell"
+            },
+            {
+                question: "What happens to Randy in Scream 2?",
+                options: ["He becomes the killer", "He survives", "He gets killed", "He goes missing"],
+                answer: "He gets killed"
+            },
+            {
+                question: "What high school do the characters attend in the original Scream?",
+                options: ["Woodsboro High", "Haddonfield High", "Elm Street High", "Crystal Lake High"],
+                answer: "Woodsboro High"
+            },
+            {
+                question: "Which character says 'Movies don't create psychos, movies make psychos more creative'?",
+                options: ["Sidney Prescott", "Billy Loomis", "Randy Meeks", "Stu Macher"],
+                answer: "Randy Meeks"
+            }
+        ];
+
+        // Elements
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const resultScreen = document.getElementById('resultScreen');
+        const winScreen = document.getElementById('winScreen');
+        const startButton = document.getElementById('startButton');
+        const continueButton = document.getElementById('continueButton');
+        const playAgainButton = document.getElementById('playAgainButton');
+        const questionElement = document.getElementById('question');
+        const optionsElement = document.getElementById('options');
+        const questionCountElement = document.getElementById('questionCount');
+        const resultTitleElement = document.getElementById('resultTitle');
+        const resultMessageElement = document.getElementById('resultMessage');
+
+        // Initialize the game
+        function initGame() {
+            gameState.currentQuestionIndex = 0;
+            gameState.activeQuestions = [...initialQuestions];
+            gameState.wrongQuestions = [];
+            gameState.answeredCorrectly = [];
+            gameState.currentRound = 1;
+            
+            welcomeScreen.style.display = 'flex';
+            gameScreen.style.display = 'none';
+            resultScreen.style.display = 'none';
+            winScreen.style.display = 'none';
+        }
+
+        // Show the current question
+        function showCurrentQuestion() {
+            const currentQuestion = gameState.activeQuestions[gameState.currentQuestionIndex];
+            
+            questionCountElement.textContent = `Question ${gameState.currentQuestionIndex + 1}/${gameState.activeQuestions.length}`;
+            questionElement.textContent = currentQuestion.question;
+            
+            // Clear previous options
+            optionsElement.innerHTML = '';
+            
+            // Add new options
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.addEventListener('click', () => checkAnswer(option));
+                optionsElement.appendChild(button);
+            });
+        }
+
+        // Check the answer
+        function checkAnswer(selectedOption) {
+            const currentQuestion = gameState.activeQuestions[gameState.currentQuestionIndex];
+            const isCorrect = selectedOption === currentQuestion.answer;
+            
+            if (isCorrect) {
+                correctSound.play();
+                gameState.answeredCorrectly.push(gameState.currentQuestionIndex);
+            } else {
+                wrongSound.play();
+                gameState.wrongQuestions.push(gameState.activeQuestions[gameState.currentQuestionIndex]);
+            }
+            
+            gameState.currentQuestionIndex++;
+            
+            // Check if all questions have been answered
+            if (gameState.currentQuestionIndex < gameState.activeQuestions.length) {
+                showCurrentQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        // Show results after answering all questions
+        function showResults() {
+            const totalQuestions = gameState.activeQuestions.length;
+            const correctAnswers = gameState.answeredCorrectly.length;
+            
+            // Check if all questions were answered correctly
+            if (correctAnswers === totalQuestions) {
+                // Player wins
+                winSound.play();
+                gameScreen.style.display = 'none';
+                winScreen.style.display = 'flex';
+            } else {
+                // Player needs to try again
+                gameScreen.style.display = 'none';
+                resultScreen.style.display = 'flex';
+                
+                resultTitleElement.textContent = "Not Good Enough!";
+                resultMessageElement.textContent = `You got ${correctAnswers}/${totalQuestions} correct — which isn't good enough!`;
+                
+                // Reset for next round
+                prepareNextRound();
+            }
+        }
+
+        // Prepare the next round with wrong questions plus a new one
+        function prepareNextRound() {
+            // Start with wrong questions from the previous round
+            gameState.activeQuestions = [...gameState.wrongQuestions];
+            
+            // Add one new question from the bank
+            const usedQuestions = initialQuestions.concat(gameState.activeQuestions);
+            const availableQuestions = questionBank.filter(q => !usedQuestions.some(used => used.question === q.question));
+            
+            if (availableQuestions.length > 0) {
+                // Get a random question from available ones
+                const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+                gameState.activeQuestions.push(availableQuestions[randomIndex]);
+            }
+            
+            // Reset for next round
+            gameState.currentQuestionIndex = 0;
+            gameState.wrongQuestions = [];
+            gameState.answeredCorrectly = [];
+            gameState.currentRound++;
+        }
+
+        // Event listeners
+        startButton.addEventListener('click', () => {
+            welcomeScreen.style.display = 'none';
+            gameScreen.style.display = 'flex';
+            showCurrentQuestion();
+        });
+
+        continueButton.addEventListener('click', () => {
+            resultScreen.style.display = 'none';
+            gameScreen.style.display = 'flex';
+            showCurrentQuestion();
+        });
+
+        playAgainButton.addEventListener('click', () => {
+            initGame();
+        });
+
+        // Initialize the game on load
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
