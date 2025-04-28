@@ -99,15 +99,41 @@
         }
         
         .question-count {
-            font-size: 1rem;
-            color: var(--ghost-gray);
-            margin-bottom: 10px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--blood-red);
+            margin-bottom: 15px;
+            padding: 8px 15px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            border: 1px solid var(--blood-red);
         }
         
         .message {
             font-size: 1.5rem;
             margin: 20px 0;
             color: var(--blood-red);
+        }
+        
+        .required-count {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: var(--blood-red);
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .required-count h2 {
+            font-size: 1.3rem;
+            color: var(--pale-white);
+            margin: 0;
+            line-height: 1.2;
+        }
+        
+        .highlight {
+            font-weight: bold;
+            text-decoration: underline;
+            font-size: 1.4rem;
         }
         
         .instructions {
@@ -155,6 +181,10 @@
                 </ul>
             </div>
             
+            <div class="required-count">
+                <h2>YOU MUST GET <span class="highlight">ALL <span id="requiredQuestionCount">3</span> QUESTIONS</span> CORRECT TO PROCEED</h2>
+            </div>
+            
             <p>Do you think you know enough to survive? Let's find out...</p>
             <button id="startButton">Start Game</button>
         </div>
@@ -170,7 +200,9 @@
         <div class="result-screen" id="resultScreen">
             <h1 id="resultTitle">Not Good Enough!</h1>
             <p id="resultMessage">You got X/Y correct — which isn't good enough!</p>
-            <p>Let's see if you can do better this time...</p>
+            <div class="required-count">
+                <h2>Now you have to get <span class="highlight"><span id="nextRoundCount">4</span> QUESTIONS</span> CORRECT!</h2>
+            </div>
             <button id="continueButton">Continue</button>
         </div>
         
@@ -374,6 +406,9 @@
             gameScreen.style.display = 'none';
             resultScreen.style.display = 'none';
             winScreen.style.display = 'none';
+            
+            // Update the required question count on the welcome screen
+            document.getElementById('requiredQuestionCount').textContent = initialQuestions.length;
         }
 
         // Show the current question
@@ -393,6 +428,9 @@
                 button.addEventListener('click', () => checkAnswer(option));
                 optionsElement.appendChild(button);
             });
+            
+            // Update the required question count on the welcome screen
+            document.getElementById('requiredQuestionCount').textContent = gameState.activeQuestions.length;
         }
 
         // Check the answer
@@ -439,6 +477,9 @@
                 
                 // Reset for next round
                 prepareNextRound();
+                
+                // Update the required question count for the next round
+                document.getElementById('nextRoundCount').textContent = gameState.activeQuestions.length;
             }
         }
 
@@ -510,6 +551,10 @@
         continueButton.addEventListener('click', () => {
             resultScreen.style.display = 'none';
             gameScreen.style.display = 'flex';
+            
+            // Update the required question count for the next round
+            document.getElementById('requiredQuestionCount').textContent = gameState.activeQuestions.length;
+            
             showCurrentQuestion();
         });
 
