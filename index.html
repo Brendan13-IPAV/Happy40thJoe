@@ -444,17 +444,51 @@
 
         // Prepare the next round with wrong questions plus a new one
         function prepareNextRound() {
+            // Track questions that were in the previous round but answered correctly
+            const previousQuestions = [...gameState.activeQuestions];
+            const correctlyAnsweredIndices = [...gameState.answeredCorrectly];
+            
             // Start with wrong questions from the previous round
             gameState.activeQuestions = [...gameState.wrongQuestions];
             
-            // Add one new question from the bank
-            const usedQuestions = initialQuestions.concat(gameState.activeQuestions);
-            const availableQuestions = questionBank.filter(q => !usedQuestions.some(used => used.question === q.question));
+            // Figure out how many new questions to add: always add 1 more than the previous round
+            // Current active questions (wrong ones) + new ones = previous total + 1
+            const previousTotal = previousQuestions.length;
+            const currentTotal = gameState.activeQuestions.length; 
+            const needToAdd = (previousTotal + 1) - currentTotal;
             
-            if (availableQuestions.length > 0) {
-                // Get a random question from available ones
-                const randomIndex = Math.floor(Math.random() * availableQuestions.length);
-                gameState.activeQuestions.push(availableQuestions[randomIndex]);
+            // Get all questions that have been used so far
+            const allUsedQuestions = [
+                ...initialQuestions,
+                ...previousQuestions,
+                ...gameState.activeQuestions
+            ];
+            
+            // Filter out duplicates from allUsedQuestions
+            const uniqueUsedQuestions = [];
+            const questionTexts = new Set();
+            
+            allUsedQuestions.forEach(q => {
+                if (!questionTexts.has(q.question)) {
+                    questionTexts.add(q.question);
+                    uniqueUsedQuestions.push(q);
+                }
+            });
+            
+            // Get available questions from the bank
+            const availableQuestions = questionBank.filter(q => 
+                !uniqueUsedQuestions.some(used => used.question === q.question)
+            );
+            
+            // Add new questions
+            for (let i = 0; i < needToAdd; i++) {
+                if (availableQuestions.length > 0) {
+                    // Get a random question from available ones
+                    const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+                    gameState.activeQuestions.push(availableQuestions[randomIndex]);
+                    // Remove this question from available questions to avoid duplicates
+                    availableQuestions.splice(randomIndex, 1);
+                }
             }
             
             // Reset for next round
@@ -462,6 +496,8 @@
             gameState.wrongQuestions = [];
             gameState.answeredCorrectly = [];
             gameState.currentRound++;
+            
+            console.log(`Round ${gameState.currentRound}: ${gameState.activeQuestions.length} questions`);
         }
 
         // Event listeners
